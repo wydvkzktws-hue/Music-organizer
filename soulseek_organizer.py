@@ -11,6 +11,7 @@ from watchdog.events import FileSystemEventHandler
 
 WATCH_DIR = Path("/Users/alemendes/soulseek downloads/complete")
 DEST_ROOT = Path.home() / "Music"
+FIRST_RUN_FLAG = Path.home() / ".soulseek-organizer-initialized"
 MUSIC_EXTENSIONS = {
     ".mp3", ".flac", ".m4a", ".ogg", ".wav", ".aiff", ".aif",
     ".aac", ".wma", ".ape", ".opus", ".alac", ".dsf", ".dff",
@@ -38,10 +39,6 @@ def dest_folder() -> Path:
     now = datetime.now()
     return DEST_ROOT / f"Music downloaded {now.day}-{now.month}"
 
-
-def backlog_folder() -> Path:
-    now = datetime.now()
-    return DEST_ROOT / f"Music downloaded before {now.day}-{now.month}"
 
 
 def wait_until_stable(path: Path) -> bool:
@@ -97,21 +94,6 @@ def move_file(src: Path, dest_dir: Path | None = None) -> None:
         log.info("Moved: %s → %s", src.name, dest)
     except OSError as exc:
         log.error("Move failed for %s: %s", src, exc)
-        return
-
-    # Remove empty ancestor dirs up to (but not including) the watch root
-    parent = src.parent
-    while parent != WATCH_DIR:
-        try:
-            next(parent.iterdir())
-            break  # not empty
-        except StopIteration:
-            try:
-                parent.rmdir()
-                log.info("Removed empty dir: %s", parent)
-            except OSError:
-                break
-        parent = parent.parent
 
 
 def process_file(path: Path) -> None:
@@ -122,17 +104,18 @@ def process_file(path: Path) -> None:
 
 
 def scan_existing() -> None:
-    """Move any music files already in the watch dir into the backlog folder."""
-    dest_dir = backlog_folder()
+    """On first-ever run: move existing music files into today's dated folder."""
+    dest_dir = dest_folder()
     found = 0
     for path in WATCH_DIR.rglob("*"):
         if path.is_file() and path.suffix.lower() in MUSIC_EXTENSIONS and not path.name.startswith("."):
             move_file(path, dest_dir)
             found += 1
     if found:
-        log.info("Startup scan: moved %d existing file(s) to %s", found, dest_dir)
+        log.info("First-run scan: moved %d existing file(s) to %s", found, dest_dir)
     else:
-        log.info("Startup scan: no existing music files found")
+        log.info("First-run scan: no existing music files found")
+    FIRST_RUN_FLAG.touch()
 
 
 class MusicHandler(FileSystemEventHandler):
@@ -159,6 +142,10 @@ def main() -> None:
     if not WATCH_DIR.exists():
         log.error("Watch directory does not exist: %s", WATCH_DIR)
         raise SystemExit(1)
+
+    if not FIRST_RUN_FLAG.exists():
+        log.info("First run detected — scanning existing files")
+        scan_existing()
 
     log.info("Watching %s", WATCH_DIR)
     observer = Observer()
