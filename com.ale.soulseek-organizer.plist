@@ -13,10 +13,10 @@
     </array>
 
     <key>RunAtLoad</key>
-    <true/>
+    <false/>
 
     <key>KeepAlive</key>
-    <true/>
+    <false/>
 
     <key>StandardOutPath</key>
     <string>/Users/alemendes/Library/Logs/soulseek-organizer.log</string>
