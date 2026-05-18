@@ -90,8 +90,8 @@ def move_file(src: Path, dest_dir: Path | None = None) -> None:
     dest = unique_dest(dest_dir, src.name)
 
     try:
-        shutil.move(str(src), str(dest))
-        log.info("Moved: %s → %s", src.name, dest)
+        shutil.copy2(str(src), str(dest))
+        log.info("Copied: %s → %s", src.name, dest)
     except OSError as exc:
         log.error("Move failed for %s: %s", src, exc)
 
