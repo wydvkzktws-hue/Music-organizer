@@ -4,11 +4,13 @@ A macOS tool that automatically moves finished Soulseek downloads into dated fol
 
 ## What it does
 
-Watches your Soulseek downloads folder and copies completed music files into dated folders in `~/Music`. Originals stay in the Soulseek download folder — DJ software like rekordbox keeps its file path references intact.
+Watches your Soulseek downloads folder and organizes completed music files into dated folders in `~/Music`.
 
-**First run:** copies all existing files in the downloads folder into a folder named after today's date (e.g. `Music downloaded 18-5`). This only happens once — a flag file at `~/.soulseek-organizer-initialized` marks it done.
+**First run:** copies all existing files into a folder named after today's date (e.g. `Music downloaded 18-5`). Originals stay in the Soulseek folder — DJ software like rekordbox keeps its file path references intact. The first-run date is saved to `~/.soulseek-organizer-initialized`.
 
-**Every run after:** only newly completed downloads are copied, into a folder named after the date they arrive (e.g. `Music downloaded 19-5`, `Music downloaded 25-5`).
+**Same day as first run:** new downloads are copied to the dated folder, originals kept.
+
+**Any day after first run:** new downloads are copied to that day's folder, then the original is deleted from the Soulseek folder — keeping it clean going forward.
 
 ## Usage
 
