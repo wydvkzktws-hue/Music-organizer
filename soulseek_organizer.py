@@ -77,6 +77,13 @@ def unique_dest(dest_dir: Path, name: str) -> Path:
     return dest
 
 
+def first_run_date() -> str | None:
+    try:
+        return FIRST_RUN_FLAG.read_text().strip()
+    except FileNotFoundError:
+        return None
+
+
 def copy_file(src: Path, dest_dir: Path | None = None) -> None:
     if not src.exists():
         return
@@ -91,6 +98,15 @@ def copy_file(src: Path, dest_dir: Path | None = None) -> None:
         log.info("Copied: %s → %s", src.name, dest)
     except OSError as exc:
         log.error("Copy failed for %s: %s", src, exc)
+        return
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    if first_run_date() != today:
+        try:
+            src.unlink()
+            log.info("Deleted original: %s", src.name)
+        except OSError as exc:
+            log.error("Delete failed for %s: %s", src, exc)
 
 
 def process_file(path: Path) -> None:
@@ -110,7 +126,7 @@ def scan_existing() -> None:
         log.info("First-run scan: copied %d existing file(s) to %s", found, dest_dir)
     else:
         log.info("First-run scan: no existing music files found")
-    FIRST_RUN_FLAG.touch()
+    FIRST_RUN_FLAG.write_text(datetime.now().strftime("%Y-%m-%d"))
 
 
 class MusicHandler(FileSystemEventHandler):
@@ -124,12 +140,12 @@ class MusicHandler(FileSystemEventHandler):
 
     def on_created(self, event):
         if not event.is_directory:
-            self._schedule(event.src_path)
+            self._schedule(str(event.src_path))
 
     def on_moved(self, event):
         # Soulseek renames foo.mp3.tmp → foo.mp3 when download completes
         if not event.is_directory:
-            self._schedule(event.dest_path)
+            self._schedule(str(event.dest_path))
 
 
 def main() -> None:
