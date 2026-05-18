@@ -16,10 +16,9 @@ MUSIC_EXTENSIONS = {
     ".mp3", ".flac", ".m4a", ".ogg", ".wav", ".aiff", ".aif",
     ".aac", ".wma", ".ape", ".opus", ".alac", ".dsf", ".dff",
 }
-# Seconds the file size must remain unchanged before we consider it fully written
 STABILITY_SECS = 5
 STABILITY_POLL = 1.0
-STABILITY_TIMEOUT = 300  # bail after 5 min if file never stabilises
+STABILITY_TIMEOUT = 300
 
 
 logging.basicConfig(
@@ -40,9 +39,7 @@ def dest_folder() -> Path:
     return DEST_ROOT / f"Music downloaded {now.day}-{now.month}"
 
 
-
 def wait_until_stable(path: Path) -> bool:
-    """Poll file size until stable for STABILITY_SECS. Returns False on timeout."""
     deadline = time.time() + STABILITY_TIMEOUT
     last_size = -1
     stable_since: float | None = None
@@ -51,7 +48,7 @@ def wait_until_stable(path: Path) -> bool:
         try:
             size = path.stat().st_size
         except FileNotFoundError:
-            return False  # file vanished (e.g. Soulseek deleted/moved it)
+            return False
 
         if size == last_size:
             if stable_since is None:
@@ -80,7 +77,7 @@ def unique_dest(dest_dir: Path, name: str) -> Path:
     return dest
 
 
-def move_file(src: Path, dest_dir: Path | None = None) -> None:
+def copy_file(src: Path, dest_dir: Path | None = None) -> None:
     if not src.exists():
         return
 
@@ -93,26 +90,24 @@ def move_file(src: Path, dest_dir: Path | None = None) -> None:
         shutil.copy2(str(src), str(dest))
         log.info("Copied: %s → %s", src.name, dest)
     except OSError as exc:
-        log.error("Move failed for %s: %s", src, exc)
+        log.error("Copy failed for %s: %s", src, exc)
 
 
 def process_file(path: Path) -> None:
-    """Thread target: wait for file to be fully written, then move it."""
     if not wait_until_stable(path):
         return
-    move_file(path)
+    copy_file(path)
 
 
 def scan_existing() -> None:
-    """On first-ever run: move existing music files into today's dated folder."""
     dest_dir = dest_folder()
     found = 0
     for path in WATCH_DIR.rglob("*"):
         if path.is_file() and path.suffix.lower() in MUSIC_EXTENSIONS and not path.name.startswith("."):
-            move_file(path, dest_dir)
+            copy_file(path, dest_dir)
             found += 1
     if found:
-        log.info("First-run scan: moved %d existing file(s) to %s", found, dest_dir)
+        log.info("First-run scan: copied %d existing file(s) to %s", found, dest_dir)
     else:
         log.info("First-run scan: no existing music files found")
     FIRST_RUN_FLAG.touch()
@@ -121,7 +116,6 @@ def scan_existing() -> None:
 class MusicHandler(FileSystemEventHandler):
     def _schedule(self, path_str: str) -> None:
         path = Path(path_str)
-        # Ignore tmp/partial files and hidden files
         if path.suffix.lower() not in MUSIC_EXTENSIONS:
             return
         if path.name.startswith("."):
