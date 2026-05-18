@@ -4,11 +4,13 @@ A macOS background agent that automatically moves finished Soulseek downloads in
 
 ## What it does
 
-Watches your Soulseek downloads folder and moves completed music files to:
+Watches your Soulseek downloads folder and moves completed music files into dated folders in `~/Music`.
 
-```
-~/Music/Music downloaded 18-5/
-```
+**First run:** moves all existing files in the downloads folder into a folder named after today's date (e.g. `Music downloaded 18-5`). This only happens once — a flag file at `~/.soulseek-organizer-initialized` marks it done.
+
+**Every run after:** only newly completed downloads are moved, into a folder named after the date they arrive (e.g. `Music downloaded 19-5`, `Music downloaded 25-5`).
+
+Source folder structure inside the Soulseek downloads directory is never deleted — only the music files are moved.
 
 Runs silently in the background via launchd — starts on login, restarts if it crashes.
 
