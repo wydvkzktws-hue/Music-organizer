@@ -123,10 +123,11 @@ def scan_existing() -> None:
             copy_file(path, dest_dir)
             found += 1
     if found:
-        log.info("First-run scan: copied %d existing file(s) to %s", found, dest_dir)
+        log.info("Startup scan: copied %d existing file(s) to %s", found, dest_dir)
     else:
-        log.info("First-run scan: no existing music files found")
-    FIRST_RUN_FLAG.write_text(datetime.now().strftime("%Y-%m-%d"))
+        log.info("Startup scan: no existing music files found")
+    if not FIRST_RUN_FLAG.exists():
+        FIRST_RUN_FLAG.write_text(datetime.now().strftime("%Y-%m-%d"))
 
 
 class MusicHandler(FileSystemEventHandler):
@@ -153,9 +154,8 @@ def main() -> None:
         log.error("Watch directory does not exist: %s", WATCH_DIR)
         raise SystemExit(1)
 
-    if not FIRST_RUN_FLAG.exists():
-        log.info("First run detected — scanning existing files")
-        scan_existing()
+    log.info("Scanning existing files on startup")
+    scan_existing()
 
     log.info("Watching %s", WATCH_DIR)
     observer = Observer()
