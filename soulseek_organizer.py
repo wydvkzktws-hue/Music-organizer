@@ -115,17 +115,31 @@ def process_file(path: Path) -> None:
     copy_file(path)
 
 
+def already_organized() -> set[str]:
+    organized = set()
+    for folder in DEST_ROOT.glob("Music downloaded *"):
+        if folder.is_dir():
+            for f in folder.iterdir():
+                if f.is_file():
+                    organized.add(f.name)
+    return organized
+
+
 def scan_existing() -> None:
     dest_dir = dest_folder()
-    found = 0
+    known = already_organized()
+    found = skipped = 0
     for path in WATCH_DIR.rglob("*"):
         if path.is_file() and path.suffix.lower() in MUSIC_EXTENSIONS and not path.name.startswith("."):
+            if path.name in known:
+                skipped += 1
+                continue
             copy_file(path, dest_dir)
             found += 1
     if found:
-        log.info("Startup scan: copied %d existing file(s) to %s", found, dest_dir)
+        log.info("Startup scan: copied %d new file(s) to %s (skipped %d already organized)", found, dest_dir, skipped)
     else:
-        log.info("Startup scan: no existing music files found")
+        log.info("Startup scan: no new music files found (skipped %d already organized)", skipped)
     if not FIRST_RUN_FLAG.exists():
         FIRST_RUN_FLAG.write_text(datetime.now().strftime("%Y-%m-%d"))
 
